@@ -49,7 +49,6 @@ endif	# TOPDIR
 
 default:: prepare
 	@echo Kernel build directory is $(OUTDIR)
-	$(MAKE) -C ../linux apply_patches
 	$(MAKE) -C $(OUTDIR) M=$(PWD) $(MYCFLAGS) modules
 	./scripts/rmmod.pl check
 #	$(MAKE) checkpatch
@@ -334,11 +333,9 @@ endif
 $(obj)/.config: $(obj)/.version
 	@echo Updating/Creating .config
 	@if [ -e $(obj)/.config ]; then touch $(obj)/.config ; else \
-		$(MAKE) -C ../linux apply_patches; \
 		./scripts/make_kconfig.pl $(OUTDIR) $(SRCDIR); fi
 
 $(obj)/Kconfig: $(obj)/.version
-	@$(MAKE) -C ../linux apply_patches
 	./scripts/make_kconfig.pl $(OUTDIR) $(SRCDIR)
 
 # With make -j, it's possible that both the .config and Kconfig rules
@@ -363,12 +360,10 @@ menuconfig:: $(MCONF) lxdialog $(obj)/Kconfig
 	./scripts/fix_kconfig.pl
 
 allyesconfig allmodconfig:: $(obj)/.version
-	@$(MAKE) -C ../linux apply_patches
 	./scripts/make_kconfig.pl $(OUTDIR) $(SRCDIR) 1
 	./scripts/fix_kconfig.pl
 
 stagingconfig:: $(obj)/.version
-	@$(MAKE) -C ../linux apply_patches
 	./scripts/make_kconfig.pl $(OUTDIR) $(SRCDIR) 1 1
 	./scripts/fix_kconfig.pl
 
@@ -454,5 +449,5 @@ snapshot snap tarball:: update distclean
 	hg history --style scripts/map-changelog > /$(snapdir)/$(snap)-ChangeLog-$(date)
 	$(MAKE) -C $(snapdir)
 
-dir download apply-patches unapply-patches untar::
+dir download untar::
 	make -C ../linux $@
