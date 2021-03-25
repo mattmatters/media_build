@@ -73,7 +73,6 @@
 #define uninitialized_var(x) x = x
 #endif
 
-#ifdef NEED_POLL_T
 typedef unsigned __poll_t;
 /* Epoll event masks */
 #define EPOLLIN		(__force __poll_t)0x00000001
@@ -88,7 +87,7 @@ typedef unsigned __poll_t;
 #define EPOLLWRBAND	(__force __poll_t)0x00000200
 #define EPOLLMSG	(__force __poll_t)0x00000400
 #define EPOLLRDHUP	(__force __poll_t)0x00002000
-#endif
+
 
 #define SIZE_MAX    (~(size_t)0)
 
@@ -96,14 +95,29 @@ typedef unsigned __poll_t;
 #include <linux/sizes.h>
 #endif
 
+#define sizeof_field(TYPE, MEMBER) sizeof((((TYPE *)0)->MEMBER))
+#define EXPERIMENTAL_TREE
+#define i2c_new_dummy_device(adap, addr) (i2c_new_dummy(adap, addr) ? : (struct i2c_client *)ERR_PTR(-ENODEV))
+
+#define untagged_addr(addr) (addr)
+#define KEY_FULL_SCREEN		0x174   /* AC View Toggle */
+
+#include <linux/compat.h>
+
+static inline long compat_ptr_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+{
+        if (!file->f_op->unlocked_ioctl)
+                return -ENOIOCTLCMD;
+
+        return file->f_op->unlocked_ioctl(file, cmd, (unsigned long)compat_ptr(arg));
+}
+
 /* In v2.6.19-rc6-118-g52bad64 struct work_struct was was changed to be only for
  * non-delayed work and struct delayed_work was created for delayed work.  This
  * will rename the structures.  Hopefully no one will decide to name something
  * delayed_work in the same context as something named work_struct.  */
-#ifdef NEED_DELAYED_WORK
 #define delayed_work work_struct
 #define INIT_DELAYED_WORK(a,b,c)	INIT_WORK(a,b,c)
-#endif
 
 #define EXPERIMENTAL_TREE
 
@@ -1584,13 +1598,13 @@ static inline int __must_check kref_get_unless_zero(struct kref *kref)
 #ifdef NEED_PRANDOM_U32_MAX
 #include <linux/random.h>
 #ifdef NEED_PRANDOM_U32
-#define prandom_u32 random32
+#define prandom_u32 prandom_u32
 #endif
 
-static inline u32 prandom_u32_max(u32 ep_ro)
-{
-	return (u32)(((u64) prandom_u32() * ep_ro) >> 32);
-}
+/* static inline u32 prandom_u32_max(u32 ep_ro) */
+/* { */
+/* 	return (u32)(((u64) prandom_u32() * ep_ro) >> 32); */
+/* } */
 #endif
 
 #ifdef NEED_GENMASK
@@ -1749,51 +1763,51 @@ static inline void kvfree(const void *addr)
 #endif
 
 #ifdef NEED_FRAME_VECTOR
-#include <linux/mm.h>
-#include <linux/err.h>
-#include <linux/module.h>
+/* #include <linux/mm.h> */
+/* #include <linux/err.h> */
+/* #include <linux/module.h> */
 
-/* Container for pinned pfns / pages */
-struct frame_vector {
-	unsigned int nr_allocated;	/* Number of frames we have space for */
-	unsigned int nr_frames;	/* Number of frames stored in ptrs array */
-	bool got_ref;		/* Did we pin pages by getting page ref? */
-	bool is_pfns;		/* Does array contain pages or pfns? */
-	void *ptrs[0];		/* Array of pinned pfns / pages. Use
-				 * pfns_vector_pages() or pfns_vector_pfns()
-				 * for access */
-};
+/* /\* Container for pinned pfns / pages *\/ */
+/* struct frame_vector { */
+/* 	unsigned int nr_allocated;	/\* Number of frames we have space for *\/ */
+/* 	unsigned int nr_frames;	/\* Number of frames stored in ptrs array *\/ */
+/* 	bool got_ref;		/\* Did we pin pages by getting page ref? *\/ */
+/* 	bool is_pfns;		/\* Does array contain pages or pfns? *\/ */
+/* 	void *ptrs[0];		/\* Array of pinned pfns / pages. Use */
+/* 				 * pfns_vector_pages() or pfns_vector_pfns() */
+/* 				 * for access *\/ */
+/* }; */
 
-struct frame_vector *frame_vector_create(unsigned int nr_frames);
-void frame_vector_destroy(struct frame_vector *vec);
-int get_vaddr_frames(unsigned long start, unsigned int nr_pfns,
-		     bool write, bool force, struct frame_vector *vec);
-void put_vaddr_frames(struct frame_vector *vec);
-int frame_vector_to_pages(struct frame_vector *vec);
-void frame_vector_to_pfns(struct frame_vector *vec);
+/* struct frame_vector *frame_vector_create(unsigned int nr_frames); */
+/* void frame_vector_destroy(struct frame_vector *vec); */
+/* int get_vaddr_frames(unsigned long start, unsigned int nr_pfns, */
+/* 		     bool write, bool force, struct frame_vector *vec); */
+/* void put_vaddr_frames(struct frame_vector *vec); */
+/* int frame_vector_to_pages(struct frame_vector *vec); */
+/* void frame_vector_to_pfns(struct frame_vector *vec); */
 
-static inline unsigned int frame_vector_count(struct frame_vector *vec)
-{
-	return vec->nr_frames;
-}
+/* static inline unsigned int frame_vector_count(struct frame_vector *vec) */
+/* { */
+/* 	return vec->nr_frames; */
+/* } */
 
-static inline struct page **frame_vector_pages(struct frame_vector *vec)
-{
-	if (vec->is_pfns) {
-		int err = frame_vector_to_pages(vec);
+/* static inline struct page **frame_vector_pages(struct frame_vector *vec) */
+/* { */
+/* 	if (vec->is_pfns) { */
+/* 		int err = frame_vector_to_pages(vec); */
 
-		if (err)
-			return ERR_PTR(err);
-	}
-	return (struct page **)(vec->ptrs);
-}
+/* 		if (err) */
+/* 			return ERR_PTR(err); */
+/* 	} */
+/* 	return (struct page **)(vec->ptrs); */
+/* } */
 
-static inline unsigned long *frame_vector_pfns(struct frame_vector *vec)
-{
-	if (!vec->is_pfns)
-		frame_vector_to_pfns(vec);
-	return (unsigned long *)(vec->ptrs);
-}
+/* static inline unsigned long *frame_vector_pfns(struct frame_vector *vec) */
+/* { */
+/* 	if (!vec->is_pfns) */
+/* 		frame_vector_to_pfns(vec); */
+/* 	return (unsigned long *)(vec->ptrs); */
+/* } */
 
 #endif
 
@@ -2326,8 +2340,6 @@ static inline bool fwnode_device_is_available(struct fwnode_handle *fwnode)
 }
 #endif
 
-#ifdef CONFIG_OF
-#ifdef NEED_PROP_COUNT
 #include <linux/property.h>
 static inline int fwnode_property_count_u32(const struct fwnode_handle *fwnode,
 					    const char *propname)
@@ -2340,8 +2352,6 @@ static inline int fwnode_property_count_u64(const struct fwnode_handle *fwnode,
 {
 	return fwnode_property_read_u64_array(fwnode, propname, NULL, 0);
 }
-#endif
-#endif
 
 #ifdef NEED_TIMER_SETUP_ON_STACK
 #define timer_setup_on_stack(timer, callback, flags)        \
@@ -2387,12 +2397,12 @@ static inline long get_user_pages_longterm(unsigned long start,
 #define __pfn_to_phys(pfn)  PFN_PHYS(pfn)
 #endif
 
-#ifdef NEED_NEXT_PSEUDO_RANDOM32
-static inline u32 next_pseudo_random32(u32 seed)
-{
-	return seed * 1664525 + 1013904223;
-}
-#endif
+/* #ifdef NEED_NEXT_PSEUDO_RANDOM32 */
+/* static inline u32 next_pseudo_random32(u32 seed) */
+/* { */
+/* 	return seed * 1664525 + 1013904223; */
+/* } */
+/* #endif */
 
 /* of_property_read_u32_index is available since Kernel 3.10. For older Kernels
  * this will not compile */
